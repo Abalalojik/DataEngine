@@ -1,0 +1,17 @@
+# Normalize all text files to LF in the repository; Git will convert to the
+# platform's native line ending on checkout where appropriate.
+* text=auto eol=lf
+
+# C# sources
+*.cs text eol=lf diff=csharp
+
+# Project / solution files
+*.csproj text eol=lf
+*.sln text eol=crlf
+
+# Docs
+*.md text eol=lf
+*.json text eol=lf
+
+# Binary-ish / generated
+*.dbeg binary

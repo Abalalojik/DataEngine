@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="dbeg-mcp/dbeg-mcp.csproj" />
+  <Project Path="DBEngine/DBEngine.csproj" />
+</Solution>
