@@ -75,8 +75,11 @@ public abstract class ContainerBase
     {
         var field = RequireField(fieldName);
         var key = DocumentConverter.ToFieldValue(value, field);
+        // Re-read the meta: index roots are updated on disk as records are inserted, so the
+        // copy captured when this container handle was created can be stale (IndexRoots=NoPage).
+        var meta = StorageManager.GetContainer(Name) ?? _meta;
 
-        foreach (var id in IndexManager.Find(_meta, fieldName, key))
+        foreach (var id in IndexManager.Find(meta, fieldName, key))
             yield return new RecordRef(id);
     }
 
@@ -89,8 +92,9 @@ public abstract class ContainerBase
         var field = RequireField(fieldName);
         var minValue = min is null ? (FieldValue?)null : DocumentConverter.ToFieldValue(min, field);
         var maxValue = max is null ? (FieldValue?)null : DocumentConverter.ToFieldValue(max, field);
+        var meta = StorageManager.GetContainer(Name) ?? _meta;
 
-        foreach (var id in IndexManager.Range(_meta, fieldName, minValue, maxValue))
+        foreach (var id in IndexManager.Range(meta, fieldName, minValue, maxValue))
             yield return new RecordRef(id);
     }
 

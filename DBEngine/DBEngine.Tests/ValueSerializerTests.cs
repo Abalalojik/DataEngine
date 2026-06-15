@@ -6,22 +6,26 @@ namespace DBEngine.Tests;
 
 public class ValueSerializerTests
 {
+    // Note: FieldType is internal; xUnit needs public test methods, and a public method
+    // can't expose an internal parameter type (CS0051). So values are passed as int and
+    // cast back to FieldType inside — keeps FieldType internal and the tests discoverable.
     [Theory]
-    [InlineData(FieldType.Int32)]
-    [InlineData(FieldType.Int64)]
-    [InlineData(FieldType.Float)]
-    [InlineData(FieldType.Double)]
-    [InlineData(FieldType.Boolean)]
-    [InlineData(FieldType.DateTime)]
-    [InlineData(FieldType.Guid)]
-    [InlineData(FieldType.String)]
-    [InlineData(FieldType.Bytes)]
-    [InlineData(FieldType.Enum)]
-    [InlineData(FieldType.DateTimeEra)]
-    [InlineData(FieldType.TableRef)]
-    [InlineData(FieldType.CollectionRef)]
-    public void RoundTrips_NonNullValue(FieldType type)
+    [InlineData((int)FieldType.Int32)]
+    [InlineData((int)FieldType.Int64)]
+    [InlineData((int)FieldType.Float)]
+    [InlineData((int)FieldType.Double)]
+    [InlineData((int)FieldType.Boolean)]
+    [InlineData((int)FieldType.DateTime)]
+    [InlineData((int)FieldType.Guid)]
+    [InlineData((int)FieldType.String)]
+    [InlineData((int)FieldType.Bytes)]
+    [InlineData((int)FieldType.Enum)]
+    [InlineData((int)FieldType.DateTimeEra)]
+    [InlineData((int)FieldType.TableRef)]
+    [InlineData((int)FieldType.CollectionRef)]
+    public void RoundTrips_NonNullValue(int typeValue)
     {
+        var type = (FieldType)typeValue;
         var value = SampleValue(type);
 
         int size = ValueSerializer.GetSize(value);
@@ -39,13 +43,14 @@ public class ValueSerializerTests
     }
 
     [Theory]
-    [InlineData(FieldType.Int32)]
-    [InlineData(FieldType.String)]
-    [InlineData(FieldType.Bytes)]
-    [InlineData(FieldType.DateTimeEra)]
-    [InlineData(FieldType.TableRef)]
-    public void RoundTrips_NullValue(FieldType type)
+    [InlineData((int)FieldType.Int32)]
+    [InlineData((int)FieldType.String)]
+    [InlineData((int)FieldType.Bytes)]
+    [InlineData((int)FieldType.DateTimeEra)]
+    [InlineData((int)FieldType.TableRef)]
+    public void RoundTrips_NullValue(int typeValue)
     {
+        var type = (FieldType)typeValue;
         var value = FieldValue.Null(type);
 
         int size = ValueSerializer.GetSize(value);
