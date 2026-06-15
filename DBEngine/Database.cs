@@ -221,6 +221,8 @@ public class Database : IDisposable
             fs.Dispose();
         }
 
+        Storage.BufferPool.Reset();
+
         GC.SuppressFinalize(this);
     }
 }

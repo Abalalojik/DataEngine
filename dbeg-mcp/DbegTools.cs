@@ -119,12 +119,16 @@ public static class DbegTools
         [Description("Table or collection name.")] string name,
         [Description("JSON object of field values, e.g. {\"Id\":\"<guid>\",\"Name\":\"Hero\"}")] string jsonDoc)
     {
-        RequireDb();
-        var container = GetContainerBase(name);
-        if (container == null) return $"No container named '{name}'.";
-        var doc = ParseDoc(container, jsonDoc);
-        var r = container.Insert(doc);
-        return r.ToString();
+        try
+        {
+            RequireDb();
+            var container = GetContainerBase(name);
+            if (container == null) return $"No container named '{name}'.";
+            var doc = ParseDoc(container, jsonDoc);
+            var r = container.Insert(doc);
+            return r.ToString();
+        }
+        catch (Exception ex) { return FormatError(ex); }
     }
 
     [McpServerTool, Description("Update an existing record. All fields not present in jsonDoc are cleared to NULL.")]
@@ -133,12 +137,16 @@ public static class DbegTools
         [Description("RecordRef string of the record to update.")] string recordRef,
         [Description("JSON object of new field values.")] string jsonDoc)
     {
-        RequireDb();
-        var container = GetContainerBase(name);
-        if (container == null) return $"No container named '{name}'.";
-        var doc = ParseDoc(container, jsonDoc);
-        var newRef = container.Update(ParseRef(recordRef), doc);
-        return newRef.ToString();
+        try
+        {
+            RequireDb();
+            var container = GetContainerBase(name);
+            if (container == null) return $"No container named '{name}'.";
+            var doc = ParseDoc(container, jsonDoc);
+            var newRef = container.Update(ParseRef(recordRef), doc);
+            return newRef.ToString();
+        }
+        catch (Exception ex) { return FormatError(ex); }
     }
 
     [McpServerTool, Description("Delete a record by its RecordRef string.")]
@@ -146,23 +154,75 @@ public static class DbegTools
         [Description("Table or collection name.")] string name,
         [Description("RecordRef string of the record to delete.")] string recordRef)
     {
-        RequireDb();
-        var container = GetContainerBase(name);
-        if (container == null) return $"No container named '{name}'.";
-        bool ok = container.Delete(ParseRef(recordRef));
-        return ok ? "Deleted." : "Record not found.";
+        try
+        {
+            RequireDb();
+            var container = GetContainerBase(name);
+            if (container == null) return $"No container named '{name}'.";
+            bool ok = container.Delete(ParseRef(recordRef));
+            return ok ? "Deleted." : "Record not found.";
+        }
+        catch (Exception ex) { return FormatError(ex); }
     }
 
     [McpServerTool, Description("Permanently drop a table or collection and all its data. Use with care.")]
     public static string DbDrop(
         [Description("Table or collection name to drop.")] string name)
     {
-        RequireDb();
-        _db!.DropContainer(name);
-        return $"Dropped: {name}";
+        try
+        {
+            RequireDb();
+            _db!.DropContainer(name);
+            return $"Dropped: {name}";
+        }
+        catch (Exception ex) { return FormatError(ex); }
     }
 
     // ── Schema alteration ──────────────────────────────────────────────────
+
+    [McpServerTool, Description(
+        "Create a new table or collection with the given field schema. Idempotent: if a " +
+        "container with that name already exists it is left untouched. 'kind' is 'table' or " +
+        "'collection'. 'fields' is a JSON array of field defs: " +
+        "[{\"name\":\"Id\",\"type\":\"Guid\",\"required\":true,\"indexed\":true}, ...]. " +
+        "type must be one of: String, Int32, Int64, Float, Double, Boolean, DateTime, Guid, Bytes.")]
+    public static string DbCreateContainer(
+        [Description("Name for the new container.")] string name,
+        [Description("'table' or 'collection'.")] string kind,
+        [Description("JSON array of {name,type,required,indexed} field definitions.")] string fields)
+    {
+        try
+        {
+            RequireDb();
+            if (_db!.GetTable(name) != null || _db.GetCollection(name) != null)
+                return $"Container '{name}' already exists; left untouched.";
+
+            var arr = JsonNode.Parse(fields)?.AsArray()
+                ?? throw new ArgumentException("fields must be a JSON array.");
+
+            var fieldList = new List<Field>();
+            foreach (var item in arr)
+            {
+                var o = item?.AsObject() ?? throw new ArgumentException("Each field must be a JSON object.");
+                var fname = o["name"]?.GetValue<string>()
+                    ?? throw new ArgumentException("Each field needs a 'name'.");
+                var dt = Enum.Parse<DataType>(
+                    o["type"]?.GetValue<string>() ?? throw new ArgumentException($"Field '{fname}' needs a 'type'."),
+                    ignoreCase: true);
+                bool req = o["required"]?.GetValue<bool>() ?? false;
+                bool idx = o["indexed"]?.GetValue<bool>() ?? false;
+                fieldList.Add(new Field(fname, dt, isRequired: req, isIndexed: idx));
+            }
+            if (fieldList.Count == 0) throw new ArgumentException("At least one field is required.");
+
+            bool isCollection = kind.Equals("collection", StringComparison.OrdinalIgnoreCase);
+            if (isCollection) _db.CreateCollection(name, fieldList);
+            else              _db.CreateTable(name, fieldList);
+
+            return $"Created {(isCollection ? "collection" : "table")} '{name}' with {fieldList.Count} field(s).";
+        }
+        catch (Exception ex) { return FormatError(ex); }
+    }
 
     [McpServerTool, Description(
         "Add a new field to an existing table or collection. " +
@@ -175,10 +235,14 @@ public static class DbegTools
         [Description("Whether the field is required (default false).")] bool isRequired = false,
         [Description("Whether the field should be indexed (default false).")] bool isIndexed = false)
     {
-        RequireDb();
-        var dt = Enum.Parse<DataType>(dataType, ignoreCase: true);
-        _db!.AddField(name, new Field(fieldName, dt, isRequired: isRequired, isIndexed: isIndexed));
-        return $"Added field '{fieldName}' ({dataType}) to '{name}'.";
+        try
+        {
+            RequireDb();
+            var dt = Enum.Parse<DataType>(dataType, ignoreCase: true);
+            _db!.AddField(name, new Field(fieldName, dt, isRequired: isRequired, isIndexed: isIndexed));
+            return $"Added field '{fieldName}' ({dataType}) to '{name}'.";
+        }
+        catch (Exception ex) { return FormatError(ex); }
     }
 
     [McpServerTool, Description(
@@ -188,9 +252,13 @@ public static class DbegTools
         [Description("Table or collection name.")] string name,
         [Description("Name of the field to drop.")] string fieldName)
     {
-        RequireDb();
-        _db!.DropField(name, fieldName);
-        return $"Dropped field '{fieldName}' from '{name}'.";
+        try
+        {
+            RequireDb();
+            _db!.DropField(name, fieldName);
+            return $"Dropped field '{fieldName}' from '{name}'.";
+        }
+        catch (Exception ex) { return FormatError(ex); }
     }
 
     [McpServerTool, Description(
@@ -201,9 +269,13 @@ public static class DbegTools
         [Description("Current field name.")] string oldName,
         [Description("New field name.")] string newName)
     {
-        RequireDb();
-        _db!.RenameField(name, oldName, newName);
-        return $"Renamed field '{oldName}' → '{newName}' in '{name}'.";
+        try
+        {
+            RequireDb();
+            _db!.RenameField(name, oldName, newName);
+            return $"Renamed field '{oldName}' → '{newName}' in '{name}'.";
+        }
+        catch (Exception ex) { return FormatError(ex); }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
@@ -304,4 +376,7 @@ public static class DbegTools
 
     private static string Serialize(object obj)
         => JsonSerializer.Serialize(obj, _json);
+
+    private static string FormatError(Exception ex)
+        => $"ERROR [{ex.GetType().Name}]: {ex.Message}\n{ex.StackTrace}";
 }
