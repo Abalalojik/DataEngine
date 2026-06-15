@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace DBEngine.Tests;
+namespace DBEngine.Tests.Integration;
 
 public class DatabaseCrudTests : IDisposable
 {

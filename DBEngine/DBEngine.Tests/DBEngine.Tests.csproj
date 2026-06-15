@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DBEngine.csproj" />
+    <ProjectReference Include="..\..\dbeg-mcp\dbeg-mcp.csproj" />
   </ItemGroup>
 
 </Project>

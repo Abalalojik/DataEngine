@@ -2,7 +2,7 @@ using DBEngine.Storage;
 using DBEngine.Temporal;
 using Xunit;
 
-namespace DBEngine.Tests;
+namespace DBEngine.Tests.Unit;
 
 public class ValueSerializerTests
 {

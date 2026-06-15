@@ -1,7 +1,7 @@
 using DBEngine.Temporal;
 using Xunit;
 
-namespace DBEngine.Tests;
+namespace DBEngine.Tests.Integration;
 
 /// <summary>
 /// Comprehensive round-trip coverage for every <see cref="DataType"/> the storage layer supports,
